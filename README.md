@@ -1,11 +1,24 @@
-<div align="center">
+# AI4S Smart HR Application
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+This repository is structured as a monorepo with a separate `frontend` and `backend` for easy cloud deployment.
 
-  <h1>Built with AI Studio</h2>
+## Project Structure
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+- **/frontend**: Contains the complete React application source code. This is the code that will be deployed to a static hosting service like Vercel.
+- **/backend**: Contains the Node.js server code. This is ready to be deployed to a service like Render.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+---
 
-</div>
+### **IMPORTANT CLEANUP STEP**
+
+Your repository currently contains duplicate files at the root level (e.g., `App.tsx`, `components/`, etc.). These are from the old project structure.
+
+**You must delete all the old application source files and folders from the root of your project.**
+
+The only items that should remain at the root level are:
+- `frontend/` (directory)
+- `backend/` (directory)
+- `.gitignore`
+- `README.md` (this file)
+
+This will ensure your project is clean and ready for deployment.
