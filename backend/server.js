@@ -7,22 +7,15 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Enable CORS to allow your frontend to communicate with this backend.
-// In production, strictly set this to your Vercel frontend URL.
 const allowedOrigins = [
-  process.env.FRONTEND_URL, // e.g., https://your-app.vercel.app
-  'http://localhost:5173',  // Local Vite dev server
-  'http://localhost:3000'   // Alternative local port
+  process.env.FRONTEND_URL, 
+  'http://localhost:5173',
+  'http://localhost:3000'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1 && !process.env.ALLOW_ALL_ORIGINS) {
-      // For testing phase, you might want to allow all, but secure it later
-      // return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
-      return callback(null, true); // Temporary: Allow all for easier testing
-    }
+    // Allow all origins for easier testing in preview environments
     return callback(null, true);
   }
 }));
@@ -30,16 +23,15 @@ app.use(cors({
 app.use(express.json());
 
 // Database Connection Configuration
-// Specific Internal Database URL provided by user
-const INTERNAL_DB_URL = 'postgresql://smart_hr_db_user:z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG@dpg-d4j7ct7gi27c739gf8f0-a/smart_hr_db';
+// We use the EXTERNAL URL as fallback so you can run this locally on your machine.
+// On Render, process.env.DATABASE_URL will be used automatically (which is Internal/Fast).
+const EXTERNAL_DB_URL = 'postgresql://smart_hr_db_user:z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG@dpg-d4j7ct7gi27c739gf8f0-a.oregon-postgres.render.com/smart_hr_db';
 
 let dbConfig;
 
-// Prioritize env var, fall back to hardcoded internal URL
-const connectionString = process.env.DATABASE_URL || INTERNAL_DB_URL;
+const connectionString = process.env.DATABASE_URL || EXTERNAL_DB_URL;
 
 if (connectionString) {
-  // Render / Heroku style connection string
   dbConfig = {
     connectionString: connectionString,
     ssl: {
@@ -47,12 +39,11 @@ if (connectionString) {
     }
   };
 } else {
-  // Google Cloud SQL / Local style
   dbConfig = {
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    host: process.env.DB_HOST, // e.g., '/cloudsql/PROJECT_ID:REGION:INSTANCE_NAME'
+    user: process.env.DB_USER = 'smart_hr_db_user',
+    password: process.env.DB_PASSWORD = 'z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG',
+    database: process.env.DB_NAME = 'smart_hr_db',
+    host: process.env.DB_HOST = 'dpg-d4j7ct7gi27c739gf8f0-a', 
     port: process.env.DB_PORT || 5432,
   };
 }
@@ -67,7 +58,6 @@ app.get('/api/health', (req, res) => {
 // Example endpoint
 app.get('/api/employees', async (req, res) => {
   try {
-    // Ensure the 'employees' table exists in your Postgres DB before calling this
     const result = await pool.query('SELECT * FROM employees');
     res.json(result.rows);
   } catch (err) {

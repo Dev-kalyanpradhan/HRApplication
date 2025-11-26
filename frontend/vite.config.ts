@@ -9,5 +9,10 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
+  },
+  // Ensure we are not using aliases that confuse the browser/build
+  resolve: {
+    alias: {}
   }
 });
