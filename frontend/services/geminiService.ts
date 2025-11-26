@@ -1,4 +1,5 @@
-// AI Services have been disabled.
+
+// AI Services have been disabled as per request.
 
 export const askAiAssistant = async (question: string): Promise<string> => {
   return "AI features are currently disabled.";

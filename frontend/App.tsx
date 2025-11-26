@@ -68,6 +68,9 @@ import DocumentHubPage from './pages/lifecycle/DocumentHubPage';
 import MyLearningPage from './pages/learning/MyLearningPage';
 import TeamLearningPage from './pages/learning/TeamLearningPage';
 
+// New Engagement page
+import SurveysPage from './pages/engagement/SurveysPage';
+
 // New Expense Management pages
 import MyExpensesPage from './pages/expenses/MyExpensesPage';
 import ApplyExpensePage from './pages/expenses/ApplyExpensePage';
@@ -159,6 +162,9 @@ const MainApp: React.FC = () => {
               <Route path="/requests/confirmation" element={<ConfirmationApprovalsPage />} />
               <Route path="/requests/attendance" element={<AttendanceCorrectionsPage />} />
               <Route path="/requests/expenses" element={<ExpenseApprovalsPage />} />
+
+              {/* Engagement - Placeholder for route stability */}
+              <Route path="/engagement/surveys" element={<SurveysPage />} />
 
             </Routes>
           </main>

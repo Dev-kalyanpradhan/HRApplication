@@ -30,13 +30,18 @@ app.use(cors({
 app.use(express.json());
 
 // Database Connection Configuration
-// Supports both Render (DATABASE_URL) and Google Cloud SQL (individual params)
+// Specific Internal Database URL provided by user
+const INTERNAL_DB_URL = 'postgresql://smart_hr_db_user:z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG@dpg-d4j7ct7gi27c739gf8f0-a/smart_hr_db';
+
 let dbConfig;
 
-if (process.env.DATABASE_URL) {
+// Prioritize env var, fall back to hardcoded internal URL
+const connectionString = process.env.DATABASE_URL || INTERNAL_DB_URL;
+
+if (connectionString) {
   // Render / Heroku style connection string
   dbConfig = {
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: {
       rejectUnauthorized: false // Required for Render's self-signed certificates
     }
