@@ -23,7 +23,18 @@
     /* Base URL for relative imports */
     "baseUrl": "."
   },
-  "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "dist"],
+
+  /* ✅ Only compile your app source, not config files */
+  "include": ["src", "vite-env.d.ts"],
+
+  /* ✅ Explicitly ignore build artifacts & Vite config */
+  "exclude": [
+    "node_modules",
+    "dist",
+    "vite.config.ts",
+    "vite.config.mts",
+    "vite.config.js"
+  ],
+
   "references": [{ "path": "./tsconfig.node.json" }]
 }
