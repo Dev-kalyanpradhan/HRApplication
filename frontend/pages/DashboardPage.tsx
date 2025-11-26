@@ -23,7 +23,7 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string |
 );
 
 const DashboardPage: React.FC = () => {
-    const { currentUser, userRole, employees, leaveRequests, candidates, kudos } = useAuth();
+    const { currentUser, userRole, employees, leaveRequests, candidates } = useAuth();
 
     const subordinateIds = useMemo(() => {
         if (userRole === UserRole.MANAGER && currentUser) {
