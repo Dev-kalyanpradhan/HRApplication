@@ -139,7 +139,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements);
   const [companyLogo, setCompanyLogo] = useState<string | null>(() => localStorage.getItem('companyLogo'));
 
-
   // Performance Management State
   const [performanceCycles, setPerformanceCycles] = useState<PerformanceCycle[]>(mockPerformanceCycles);
   const [goals, setGoals] = useState<Goal[]>(mockGoals);
@@ -156,11 +155,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Punch Records State
   const [punchRecords, setPunchRecords] = useState<PunchRecord[]>(mockPunchRecords);
 
-
   const userRole = useMemo(() => {
     return currentUser ? currentUser.userRole : UserRole.EMPLOYEE;
   }, [currentUser]);
-  
+
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'isRead' | 'timestamp'>) => {
     const newNotification: Notification = {
         ...notification,
@@ -168,7 +166,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isRead: false,
         timestamp: new Date().toISOString(),
     };
-    // Add to top of list
     setNotifications(prev => [newNotification, ...prev]);
   }, []);
 
@@ -181,10 +178,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setNotifications(prev => prev.map(n => n.recipientId === currentUser.id ? { ...n, isRead: true } : n));
   }, [currentUser]);
 
-
   const login = useCallback(async (employeeCode: string, password: string): Promise<void> => {
     const user = employees.find(e => e.id.toLowerCase() === employeeCode.toLowerCase());
-    
     if (user && user.password === password) {
       setCurrentUser(user);
     } else {
@@ -231,7 +226,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else if (taskTemplate.assigneeRole === UserRole.EMPLOYEE) {
             assigneeId = newEmployee.id;
         } else {
-            assigneeId = taskTemplate.assigneeId; // For specific assignees like IT/HR persons
+            assigneeId = taskTemplate.assigneeId; 
         }
 
         const newTask: Task = {
@@ -245,7 +240,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (assigneeId) {
             addNotification({
                 recipientId: assigneeId,
-                actorId: 'AI4S001', // System
+                actorId: 'AI4S001',
                 message: `New Onboarding Task: "${newTask.name}" for ${newEmployee.name}.`,
                 link: '/lifecycle/my-tasks'
             });
@@ -263,7 +258,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     setWorkflows(prev => [newWorkflow, ...prev]);
 
-    // Create required documents
     const requiredDocs = ['Aadhaar Card', 'PAN Card', 'Bank Account Proof', 'Educational Certificates', 'Previous Employment Relieving Letter', 'Signed Offer Letter', 'NDA Acknowledgment'];
     const newDocs: EmployeeDocument[] = requiredDocs.map((docName, i) => ({
         id: `doc_${newEmployee.id}_${i}`,
@@ -272,9 +266,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         status: DocumentStatus.PENDING,
     }));
     setEmployeeDocuments(prev => [...prev, ...newDocs]);
-    
   }, [addNotification]);
-
 
   const addEmployee = useCallback((employeeData: Omit<Employee, 'id' | 'leaveBalance' | 'functionAccess'>) => {
     let newEmployee: Employee | null = null;
@@ -290,20 +282,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         newEmployee = {
             ...employeeData,
-            id: `AI4S_NEW_${prev.length + 1}`, // Generate a unique ID
-            leaveBalance: { casual: 12, sick: 10, earned: 15 }, // Default balance
+            id: `AI4S_NEW_${prev.length + 1}`,
+            leaveBalance: { casual: 12, sick: 10, earned: 15 },
             functionAccess,
         };
         return [...prev, newEmployee];
     });
     
-    // This needs to run after state update, but for mock, we can assume it's synchronous
     setTimeout(() => {
         if(newEmployee) {
             initiateOnboarding(newEmployee);
         }
     }, 0);
-
   }, [initiateOnboarding]);
 
   const updateEmployee = useCallback((updatedEmployee: Employee) => {
@@ -361,7 +351,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               const recordIndex = updatedAttendance.findIndex(rec => rec.employeeId === emp.id && rec.date === date);
               const newRecord: AttendanceRecord = { id: `${emp.id}-${date}`, employeeId: emp.id, date, status };
               if (recordIndex > -1) {
-                  // Don't overwrite an existing leave request
                   if (updatedAttendance[recordIndex].status !== AttendanceStatus.ON_LEAVE) {
                       updatedAttendance[recordIndex] = newRecord;
                   }
@@ -391,7 +380,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
   
   const markAttendanceAndDeductLeave = useCallback((employeeId: string, date: string, leaveType: LeaveType) => {
-    // 1. Deduct leave from employee
     setEmployees(prev => prev.map(emp => {
         if (emp.id === employeeId) {
             const newBalance = { ...emp.leaveBalance };
@@ -399,7 +387,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if(balanceKey && newBalance[balanceKey] > 0){
                 newBalance[balanceKey] -= 1;
             } else {
-                return emp; // Do not deduct if balance is 0 or type is not deductible
+                return emp;
             }
            
             if(currentUser && currentUser.id === employeeId) {
@@ -409,10 +397,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
         return emp;
     }));
-
-    // 2. Update attendance record to 'On Leave'
     updateAttendance(employeeId, date, AttendanceStatus.ON_LEAVE);
-}, [updateAttendance, currentUser]);
+  }, [updateAttendance, currentUser]);
 
   const updateLeaveBalance = useCallback((employeeId: string, newBalance: { casual: number; sick: number; earned: number; }) => {
     setEmployees(prev => prev.map(emp => {
@@ -426,7 +412,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return emp;
     }));
   }, [currentUser]);
-
 
   const postNewPayrollBatch = useCallback((newRecords: PayrollRecord[], year: number, month: number) => {
     setPayrollHistory(prev => {
@@ -590,7 +575,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
     setCandidates(prev => [newCandidate, ...prev]);
 
-    // Notify interviewer
     addNotification({
         recipientId: newInterview.interviewerId,
         actorId: currentUser.id,
@@ -624,7 +608,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           status: DeclarationStatus.PENDING
       };
       setDeclarations(prev => [newDeclaration, ...prev]);
-      // Notify admin (hardcoded for now)
       addNotification({
           recipientId: 'AI4S302', // Admin
           actorId: currentUser.id,
@@ -715,7 +698,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
            if (newStatus === SalaryChangeStatus.APPROVED && employee) {
                updateEmployee({ ...employee, ctc: updatedRequest.newCtc });
            }
-           // Notify requester
            addNotification({
                 recipientId: updatedRequest.requesterId,
                 actorId: updatedRequest.approverId,
@@ -751,9 +733,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             link: '/requests/confirmation'
         });
     }
-}, [employees, currentUser, confirmationRequests, addNotification, updateEmployee]);
+  }, [employees, currentUser, confirmationRequests, addNotification, updateEmployee]);
 
-const updateConfirmationRequestStatus = useCallback((requestId: string, decision: 'approve' | 'reject') => {
+  const updateConfirmationRequestStatus = useCallback((requestId: string, decision: 'approve' | 'reject') => {
     const request = confirmationRequests.find(r => r.id === requestId);
     if (!request || !currentUser) return;
     
@@ -776,7 +758,7 @@ const updateConfirmationRequestStatus = useCallback((requestId: string, decision
             message: `Confirmation for ${employee.name} was rejected.`,
             link: '/employees'
         });
-    } else { // approve
+    } else {
         if (request.status === ConfirmationStatus.PENDING_REPORTING_MANAGER_APPROVAL) {
             newStatus = ConfirmationStatus.PENDING_FUNCTIONAL_MANAGER_APPROVAL;
             notificationRecipientId = employee.functionalManagerId;
@@ -811,11 +793,9 @@ const updateConfirmationRequestStatus = useCallback((requestId: string, decision
             });
         }
     }
+  }, [confirmationRequests, employees, currentUser, addNotification, updateEmployee]);
 
-}, [confirmationRequests, employees, currentUser, addNotification, updateEmployee]);
-
-
-const addAttendanceCorrectionRequest = useCallback((requestData: Omit<AttendanceCorrectionRequest, 'id' | 'employeeId' | 'employeeName' | 'status' | 'submissionDate'>) => {
+  const addAttendanceCorrectionRequest = useCallback((requestData: Omit<AttendanceCorrectionRequest, 'id' | 'employeeId' | 'employeeName' | 'status' | 'submissionDate'>) => {
     if (!currentUser) return;
 
     const newRequest: AttendanceCorrectionRequest = {
@@ -837,10 +817,9 @@ const addAttendanceCorrectionRequest = useCallback((requestData: Omit<Attendance
             link: '/requests/attendance'
         });
     }
+  }, [currentUser, employees, addNotification]);
 
-}, [currentUser, employees, addNotification]);
-
-const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, newStatus: AttendanceCorrectionStatus) => {
+  const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, newStatus: AttendanceCorrectionStatus) => {
     let updatedRequest: AttendanceCorrectionRequest | undefined;
     
     setAttendanceCorrectionRequests(prev => prev.map(req => {
@@ -852,7 +831,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
     }));
     
     if (updatedRequest && newStatus === AttendanceCorrectionStatus.APPROVED) {
-        // Update punch record
         setPunchRecords(prev => {
             const index = prev.findIndex(p => p.employeeId === updatedRequest!.employeeId && p.date === updatedRequest!.date);
             const newPunchIn = updatedRequest!.requestedPunchIn ? new Date(`${updatedRequest!.date}T${updatedRequest!.requestedPunchIn}:00`).toISOString() : null;
@@ -877,7 +855,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
                 }];
             }
         });
-        // Update attendance record
         updateAttendance(updatedRequest.employeeId, updatedRequest.date, AttendanceStatus.PRESENT);
     }
     
@@ -889,11 +866,8 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
             link: '/attendance/my-attendance'
         });
     }
+  }, [currentUser, addNotification, updateAttendance]);
 
-}, [currentUser, addNotification, updateAttendance]);
-
-
-  // Performance Management Functions
   const addPerformanceCycle = useCallback((cycle: Omit<PerformanceCycle, 'id'|'status'>) => {
       const newCycle: PerformanceCycle = {
           ...cycle,
@@ -963,7 +937,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
       });
   }, [currentUser, addNotification]);
 
-  // Lifecycle Management Functions
   const initiateOffboarding = useCallback((employeeId: string, lastWorkingDay: string, reason: string) => {
       const employee = employees.find(e => e.id === employeeId);
       if(!employee) return;
@@ -1027,12 +1000,11 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
       }));
 
       if(updatedTask && currentUser) {
-          // Notify HR that a task is done
           addNotification({
               recipientId: 'AI4S_Pawan', // HR
               actorId: currentUser.id,
               message: `Task "${updatedTask.name}" was completed.`,
-              link: '/lifecycle/onboarding' // A generic link
+              link: '/lifecycle/onboarding'
           });
       }
   }, [currentUser, addNotification]);
@@ -1072,7 +1044,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
        }
   }, [currentUser, addNotification]);
   
-  // Learning Functions
   const assignLearning = useCallback((assignmentData: Omit<LearningAssignment, 'id'|'assignedById'|'assignedAt'|'status'|'completedAt'>) => {
     if(!currentUser) return;
     const newAssignment: LearningAssignment = {
@@ -1115,7 +1086,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
         const existingRecordIndex = prev.findIndex(r => r.employeeId === currentUser.id && r.date === dateStr);
         
         if (existingRecordIndex > -1) {
-            // Record exists, update it
             const updatedRecords = [...prev];
             const record = updatedRecords[existingRecordIndex];
             if (type === 'out' && record.punchIn && !record.punchOut) {
@@ -1123,7 +1093,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
             }
             return updatedRecords;
         } else {
-            // No record for today, create a new one if it's a punch-in
             if (type === 'in') {
                 const newRecord: PunchRecord = {
                     id: `punch_${currentUser.id}_${dateStr}`,
@@ -1135,7 +1104,7 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
                 return [...prev, newRecord];
             }
         }
-        return prev; // No change if trying to punch out without a record
+        return prev;
     });
   }, [currentUser]);
 
@@ -1153,7 +1122,6 @@ const updateAttendanceCorrectionRequestStatus = useCallback((requestId: string, 
 
     setAnnouncements(prev => [newAnnouncement, ...prev]);
 
-    // Notify all other employees
     employees.forEach(employee => {
         if (employee.id !== currentUser.id) {
             addNotification({

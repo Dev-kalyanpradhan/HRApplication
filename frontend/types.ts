@@ -1,3 +1,4 @@
+
 export enum EmploymentType {
   TRAINEE = 'Trainee',
   REGULAR = 'Regular',
