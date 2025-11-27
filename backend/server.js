@@ -1,71 +1,123 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+require('dotenv').config();
 
 const app = express();
-// Render/GCP will provide the port via an environment variable.
 const PORT = process.env.PORT || 3001;
 
-// Enable CORS to allow your frontend to communicate with this backend.
-const allowedOrigins = [
-  process.env.FRONTEND_URL, 
-  'http://localhost:5173',
-  'http://localhost:3000'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow all origins for easier testing in preview environments
-    return callback(null, true);
-  }
-}));
-
+app.use(cors());
 app.use(express.json());
 
-// Database Connection Configuration
-// We use the EXTERNAL URL as fallback so you can run this locally on your machine.
-// On Render, process.env.DATABASE_URL will be used automatically (which is Internal/Fast).
-const EXTERNAL_DB_URL = 'postgresql://smart_hr_db_user:z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG@dpg-d4j7ct7gi27c739gf8f0-a.oregon-postgres.render.com/smart_hr_db';
-
-let dbConfig;
-
-const connectionString = process.env.DATABASE_URL || EXTERNAL_DB_URL;
-
-if (connectionString) {
-  dbConfig = {
-    connectionString: connectionString,
-    ssl: {
-      rejectUnauthorized: false // Required for Render's self-signed certificates
-    }
-  };
-} else {
-  dbConfig = {
-    user: process.env.DB_USER = 'smart_hr_db_user',
-    password: process.env.DB_PASSWORD = 'z1KPY6GFOAKkyBl6SOXDSLzDyFJCGSKG',
-    database: process.env.DB_NAME = 'smart_hr_db',
-    host: process.env.DB_HOST = 'dpg-d4j7ct7gi27c739gf8f0-a', 
-    port: process.env.DB_PORT || 5432,
-  };
-}
-
-const pool = new Pool(dbConfig);
-
-// Health Check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend is running!', platform: process.env.RENDER ? 'Render' : 'Generic' });
+// PostgreSQL connection pool
+const pool = new Pool({
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'hrms_db',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
+  ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
 
-// Example endpoint
+// Test DB connection
+pool.connect()
+  .then(client => {
+    client.release();
+    console.log('✅ Connected to PostgreSQL');
+  })
+  .catch(err => {
+    console.error('❌ DB Connection Error:', err.message || err);
+  });
+
+// Health
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend is running!' });
+});
+
+// Get all employees
 app.get('/api/employees', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM employees');
+    const result = await pool.query('SELECT * FROM employees ORDER BY id');
     res.json(result.rows);
   } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ error: 'Database query error', details: err.message });
+    console.error('Query error:', err);
+    res.status(500).json({ error: 'Database query error' });
+  }
+});
+
+// Get single employee
+app.get('/api/employees/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await pool.query('SELECT * FROM employees WHERE id = $1', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Query error:', err);
+    res.status(500).json({ error: 'Database query error' });
+  }
+});
+
+// Create employee
+app.post('/api/employees', async (req, res) => {
+  try {
+    const {
+      emp_code, first_name, last_name, email, phone, gender,
+      date_of_birth, date_of_joining, department_id, role_id, status
+    } = req.body;
+    const result = await pool.query(
+      `INSERT INTO employees
+       (emp_code, first_name, last_name, email, phone, gender, date_of_birth, date_of_joining, department_id, role_id, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       RETURNING *`,
+      [emp_code, first_name, last_name, email, phone, gender, date_of_birth, date_of_joining, department_id, role_id, status || 'ACTIVE']
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Insert error:', err);
+    res.status(500).json({ error: 'Database insert error', detail: err.message });
+  }
+});
+
+// Update employee
+app.put('/api/employees/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    for (const key of ['emp_code','first_name','last_name','email','phone','gender','date_of_birth','date_of_joining','department_id','role_id','status']) {
+      if (req.body[key] !== undefined) {
+        fields.push(`${key} = $${idx}`);
+        values.push(req.body[key]);
+        idx++;
+      }
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    values.push(id);
+    const sql = `UPDATE employees SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+    const result = await pool.query(sql, values);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Update error:', err);
+    res.status(500).json({ error: 'Database update error', detail: err.message });
+  }
+});
+
+// Delete employee
+app.delete('/api/employees/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const result = await pool.query('DELETE FROM employees WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Employee not found' });
+    res.json({ deleted: true, employee: result.rows[0] });
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).json({ error: 'Database delete error' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is listening on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

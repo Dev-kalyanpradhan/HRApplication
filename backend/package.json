@@ -1,21 +1,23 @@
 {
   "name": "smart-hr-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Backend server for AI4S Smart HR app.",
   "main": "server.js",
+  "type": "commonjs",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
   }
 }
