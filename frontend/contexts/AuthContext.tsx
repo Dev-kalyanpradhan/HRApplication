@@ -1,8 +1,9 @@
-import React, { createContext, useState, useContext, useMemo, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, useMemo, ReactNode, useCallback, useEffect } from 'react';
 import { Employee, UserRole, AttendanceRecord, AttendanceStatus, PayrollRecord, LeaveRequest, LeaveStatus, TravelRequest, TravelStatus, Candidate, Interview, InterviewStatus, InterviewResult, SalaryComponent, InvestmentDeclaration, DeclarationStatus, EmployeeLoan, LoanStatus, VariablePayment, SalaryChangeRequest, SalaryChangeStatus, Notification, PerformanceCycle, Goal, PerformanceReview, Kudos, PerformanceCycleStatus, GoalStatus, ReviewStatus, Workflow, Task, EmployeeDocument, WorkflowType, WorkflowStatus, TaskStatus, DocumentStatus, LearningAssignment, LearningStatus, PunchRecord, LeaveType, EmploymentType, ConfirmationStatus, ConfirmationRequest, AttendanceCorrectionRequest, AttendanceCorrectionStatus, ExpenseRequest, ExpenseStatus, Announcement } from '../types';
 import { mockEmployees, mockAttendance, mockPayrollHistory, mockLeaveRequests, mockTravelRequests, mockCandidates, mockInvestmentDeclarations, mockEmployeeLoans, mockVariablePayments, mockSalaryChangeRequests, mockNotifications, mockPerformanceCycles, mockGoals, mockPerformanceReviews, mockKudos, mockWorkflows, mockEmployeeDocuments, onboardingTemplate, offboardingTemplate, mockLearningAssignments, mockPunchRecords, mockConfirmationRequests, mockAttendanceCorrectionRequests, mockExpenseRequests, mockAnnouncements } from '../services/mockDataService';
 import { ALL_FUNCTIONS, MANAGER_DEFAULT_ACCESS, EMPLOYEE_DEFAULT_ACCESS } from '../constants';
 import { getLeaveDurationInDays } from '../utils/dateUtils';
+import { apiService } from '../services/apiService';
 
 const initialDepartments = ["Engineering", "Product", "Design", "Sales", "Marketing", "HR", "Executive", "Technology", "Functional", "Technical"];
 const initialRoles = ["Software Engineer", "Senior Software Engineer", "Product Manager", "UI/UX Designer", "Sales Executive", "Marketing Specialist", "HR Manager", "Engineering Manager", "CEO", "CTO", "HR Executive", "Sales Manager", "Chief Executive Officer(CEO)", "Senior FICO/MM Consultant", "Associate MM Consultant", "SAP BTP Solution Architect", "Administration", "Chief Development Officer(CDO)", "Project Manager", "SAP Cloud ALM Administrator", "Developer Admin", "SAP Build App Developer", "SAP Full Stack Solution Developer", "Associate FICO Consultant", "SAP Cloud Platform & System Architect", "SAP Integration Architect", "Functional Lead"];
@@ -13,7 +14,6 @@ const initialSalaryComponents: SalaryComponent[] = [
   { id: 'c3', name: 'Special Allowance', type: 'earning', calculationType: 'balance_component', value: 0, isEditable: false, order: 100 },
   { id: 'c4', name: 'Provident Fund', type: 'deduction', calculationType: 'percentage_basic', value: 12, isEditable: true, order: 201 },
   { id: 'c5', name: 'Professional Tax', type: 'deduction', calculationType: 'fixed_amount', value: 200, isEditable: false, order: 202 },
-  // A simplified income tax for calculation purposes
   { id: 'c6', name: 'Income Tax (TDS)', type: 'deduction', calculationType: 'percentage_ctc', value: 5, isEditable: true, order: 203 }
 ];
 
@@ -155,6 +155,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Punch Records State
   const [punchRecords, setPunchRecords] = useState<PunchRecord[]>(mockPunchRecords);
 
+  // FETCH REAL DATA FROM RENDER
+  useEffect(() => {
+    const loadRealData = async () => {
+      const realEmployees = await apiService.getEmployees();
+      if (realEmployees && realEmployees.length > 0) {
+        setEmployees(realEmployees);
+      }
+    };
+    loadRealData();
+  }, []);
+
   const userRole = useMemo(() => {
     return currentUser ? currentUser.userRole : UserRole.EMPLOYEE;
   }, [currentUser]);
@@ -268,8 +279,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setEmployeeDocuments(prev => [...prev, ...newDocs]);
   }, [addNotification]);
 
-  const addEmployee = useCallback((employeeData: Omit<Employee, 'id' | 'leaveBalance' | 'functionAccess'>) => {
+  const addEmployee = useCallback(async (employeeData: Omit<Employee, 'id' | 'leaveBalance' | 'functionAccess'>) => {
     let newEmployee: Employee | null = null;
+    
+    // Optimistic Update / Mock Logic
     setEmployees(prev => {
         let functionAccess: string[];
         if (employeeData.userRole === UserRole.ADMIN) {
@@ -288,6 +301,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         };
         return [...prev, newEmployee];
     });
+    
+    // Attempt real API call
+    if (newEmployee) {
+        try {
+            await apiService.createEmployee(newEmployee);
+        } catch (e) {
+            console.warn("Backend sync failed, using mock data only.");
+        }
+    }
     
     setTimeout(() => {
         if(newEmployee) {
