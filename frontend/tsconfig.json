@@ -24,16 +24,14 @@
     "baseUrl": "."
   },
 
-  /* ✅ Only compile your app source, not config files */
-  "include": ["src", "vite-env.d.ts"],
+  /* Update include to find files in current dir (frontend root), not src */
+  "include": ["./**/*.ts", "./**/*.tsx", "vite-env.d.ts"],
 
-  /* ✅ Explicitly ignore build artifacts & Vite config */
+  /* Explicitly ignore build artifacts & Vite config */
   "exclude": [
     "node_modules",
     "dist",
-    "vite.config.ts",
-    "vite.config.mts",
-    "vite.config.js"
+    "vite.config.ts"
   ],
 
   "references": [{ "path": "./tsconfig.node.json" }]
